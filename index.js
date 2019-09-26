@@ -4,6 +4,7 @@ const path = require("path");
 
 // @TODO - move config out
 const orgDir = "/Users/roberto/Dropbox/org-docs";
+const runEvery = 5000;
 
 function prettyPrint(data) {
   console.log(JSON.stringify(data, null, 2));
@@ -96,30 +97,46 @@ function getActiveTimers(timers) {
 }
 
 function printActiveTimers(activeTimers) {
-  activeTimers.forEach(timer => {
-    console.log("Active Timer in file: " + timer.filename);
-    timer.tasks.forEach(tk => {
-      console.log("Task:" + tk.title.replace(/^\**/, ""));
-      tk.clocks.forEach(c => {
-        console.log(
-          "Timer started at:" +
-            c
-              .replace(/CLOCK:/i, "")
-              .replace(/\[/g, "")
-              .replace(/\]/g, "")
-        );
+  if (activeTimers.length === 0) {
+    console.log("No active timers");
+  } else {
+    activeTimers.forEach(timer => {
+      console.log("Active Timer in file: " + timer.filename);
+      timer.tasks.forEach(tk => {
+        console.log("Task:" + tk.title.replace(/^\**/, ""));
+        tk.clocks.forEach(c => {
+          console.log(
+            "Timer started at:" +
+              c
+                .replace(/CLOCK:/i, "")
+                .replace(/\[/g, "")
+                .replace(/\]/g, "")
+          );
+        });
       });
     });
-  });
+  }
 }
 
+let activeTimers = false;
 async function run() {
   const timers = await getTimers(orgDir);
-  console.log(
-    "---------------------------------------------------------------------------------------------------"
-  );
-  const activeTimers = getActiveTimers(timers);
-  printActiveTimers(activeTimers);
+
+  const newActiveTimers = getActiveTimers(timers);
+  if (
+    newActiveTimers &&
+    JSON.stringify(newActiveTimers) !== JSON.stringify(activeTimers)
+  ) {
+    console.log("--------------------");
+    printActiveTimers(newActiveTimers);
+    console.log("--------------------");
+    activeTimers = newActiveTimers;
+  }
 }
 
-run();
+async function runConstantly() {
+  await run();
+  setTimeout(runConstantly, runEvery);
+}
+
+runConstantly();
