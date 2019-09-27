@@ -3,8 +3,19 @@ const readline = require("readline");
 const path = require("path");
 
 // @TODO - move config out
-const orgDir = "/Users/roberto/Dropbox/org-docs";
-const runEvery = 5000;
+const configFile = "./config.json";
+function readConfig(conf) {
+  try {
+    let dataRaw = fs.readFileSync(conf);
+    return JSON.parse(dataRaw);
+  } catch (e) {
+    logError(e);
+    return {};
+  }
+}
+const conf = readConfig(configFile);
+
+const { orgDir, runEvery } = conf;
 
 function prettyPrint(data) {
   console.log(JSON.stringify(data, null, 2));
@@ -85,14 +96,18 @@ function getActiveTimers(timers) {
   const activeFilterReg = /\[[a-z0-9-\s:]*\]$/i;
   return timers
     .filter(t =>
-      t.tasks.some(tk => tk.clocks.some(c => c.match(activeFilterReg)))
+      t.tasks.some(
+        tk => tk.clocks.filter(c => c.match(activeFilterReg)).length > 0
+      )
     )
     .map(t => ({
       filename: t.filename,
-      tasks: t.tasks.map(tk => ({
-        title: tk.title,
-        clocks: tk.clocks.filter(c => c.match(activeFilterReg))
-      }))
+      tasks: t.tasks
+        .map(tk => ({
+          title: tk.title,
+          clocks: tk.clocks.filter(c => c.match(activeFilterReg))
+        }))
+        .filter(tk => tk.clocks.length > 0)
     }));
 }
 
@@ -101,12 +116,12 @@ function printActiveTimers(activeTimers) {
     console.log("No active timers");
   } else {
     activeTimers.forEach(timer => {
-      console.log("Active Timer in file: " + timer.filename);
+      console.log("[+] Active Timers:");
       timer.tasks.forEach(tk => {
-        console.log("Task:" + tk.title.replace(/^\**/, ""));
+        console.log("    Task:" + tk.title.replace(/^\**/, ""));
         tk.clocks.forEach(c => {
           console.log(
-            "Timer started at:" +
+            "    Started at:" +
               c
                 .replace(/CLOCK:/i, "")
                 .replace(/\[/g, "")
@@ -114,6 +129,7 @@ function printActiveTimers(activeTimers) {
           );
         });
       });
+      console.log("    File: " + timer.filename);
     });
   }
 }
@@ -121,15 +137,13 @@ function printActiveTimers(activeTimers) {
 let activeTimers = false;
 async function run() {
   const timers = await getTimers(orgDir);
-
   const newActiveTimers = getActiveTimers(timers);
   if (
     newActiveTimers &&
     JSON.stringify(newActiveTimers) !== JSON.stringify(activeTimers)
   ) {
-    console.log("--------------------");
+    process.stdout.write("\033c");
     printActiveTimers(newActiveTimers);
-    console.log("--------------------");
     activeTimers = newActiveTimers;
   }
 }
@@ -138,5 +152,4 @@ async function runConstantly() {
   await run();
   setTimeout(runConstantly, runEvery);
 }
-
 runConstantly();
