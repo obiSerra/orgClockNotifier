@@ -117,7 +117,10 @@ function printToArduino(activeTimers) {
     return "No active timers";
   } else {
     return activeTimers[0].tasks[0].title
-      .replace(/\** (TODO|IN-PROGRESS) \/\//, "")
+      .replace(/\**/, "")
+      .replace(/TODO/, "")
+      .replace(/IN-PROGRESS/, "")
+      .replace(/^\s*/, "")
       .replace(/\/*/g, "");
   }
 }

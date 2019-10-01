@@ -42,9 +42,17 @@ void loop(){
         if (received == '\n') {
             // Message is ready in inDate
             lcd.setCursor(0,0);
+            lcd.print("                   ");
+            lcd.setCursor(0,1);
             lcd.print("                   ");          
             lcd.setCursor(0,0);
-            lcd.print(inData);
+            if (inData == "No active timers") {
+              lcd.noDisplay();
+            } else {
+              lcd.display();
+              lcd.print(inData);
+            }
+            
             inData = "";
         } else {
           inData.concat(received);
