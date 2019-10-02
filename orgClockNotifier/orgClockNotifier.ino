@@ -21,41 +21,48 @@ String incomingByte = ""; // for incoming serial data
 
 LiquidCrystal lcd( pin_RS,  pin_EN,  pin_d4,  pin_d5,  pin_d6,  pin_d7);
 
-const byte DATA_MAX_SIZE = 32;
-char data[DATA_MAX_SIZE];   // an array to store the received data
 void setup() {
   Serial.begin(9600); // opens serial port, sets data rate to 9600 bps  
   Serial.setTimeout(10);
   lcd.begin(16, 2);
-  lcd.blink();
-  lcd.cursor();
+  //lcd.blink();
+  //lcd.cursor();
   lcd.setCursor(0,0);
   
-  lcd.print("waiting");
+  lcd.print("Waiting...");
 }
 
-String inData = "";
+String firstLine = "";
+String secondLine = "";
+int currentLine = 0;
+int displayPos = 0;
 
 void loop(){  
-    while (Serial.available() > 0) {
+    if (Serial.available() > 0) {
         char received = Serial.read();
         if (received == '\n') {
             // Message is ready in inDate
             lcd.setCursor(0,0);
             lcd.print("                   ");
-            lcd.setCursor(0,1);
-            lcd.print("                   ");          
             lcd.setCursor(0,0);
-            if (inData == "No active timers") {
-              lcd.noDisplay();
-            } else {
-              lcd.display();
-              lcd.print(inData);
-            }
-            
-            inData = "";
+            lcd.print(firstLine);
+            lcd.setCursor(0,1);
+            lcd.print("                   ");   
+            lcd.setCursor(0,1);       
+            lcd.print(secondLine);   
+            firstLine = "";
+            secondLine = "";
+            currentLine = 0;
+            displayPos = 0;
+        } else if (received == '_'){
+          currentLine = 1;
+        } else if (currentLine == 0){
+            firstLine.concat(received);  
         } else {
-          inData.concat(received);
-        }
-    }
+           secondLine.concat(received);  
+        }     
+   }
+  if (firstLine.length() > 16){
+    
+  } 
 }

@@ -17,12 +17,8 @@ function setupArduino(getMessage) {
 
 async function openPort(getMessage) {
   console.log("port open");
-  //  console.log("baud rate: " + port.options.baudRate);
 
-  // since you only send data when the port is open, this function
-  // is local to the openPort() function:
   async function sendData() {
-    // convert the value to an ASCII string before sending it:
     if (typeof getMessage === "function") {
       data = await getMessage();
       if (typeof data !== "undefined") {
@@ -32,7 +28,34 @@ async function openPort(getMessage) {
       }
     }
   }
-  // set an interval to update the brightness 2 times per second:
+
   setInterval(sendData, 500);
 }
-module.exports = { setupArduino };
+
+function formatTimers(activeTimers) {
+  if (activeTimers.length === 0) {
+    return "No active timers";
+  } else {
+    let str = activeTimers[0].tasks[0].title
+      .replace(/\**/, "")
+      .replace(/TODO/, "")
+      .replace(/IN-PROGRESS/, "")
+      .replace(/\/*/g, "")
+      .replace(/[\s]+/g, " ")
+      .trim();
+
+    str +=
+      "_Started: " +
+      activeTimers[0].tasks[0].clocks[0]
+        .replace(/CLOCK:/g, "")
+        .replace(/\[/g, "")
+        .replace(/\]/g, "")
+        .replace(/[\s]+/g, " ")
+        .replace(/[a-z]*/gi, "")
+        .replace(/[0-9]{4}-[0-9]{2}-[0-9]{2}/gi, "")
+        .trim();
+    return str;
+  }
+}
+
+module.exports = { setupArduino, formatTimers };

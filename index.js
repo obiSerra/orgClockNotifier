@@ -3,6 +3,7 @@ const readline = require("readline");
 const path = require("path");
 
 const arduinoSerial = require("./arduinoSerial");
+const { setupArduino, formatTimers } = arduinoSerial;
 // @TODO - move config out
 const configFile = "./config.json";
 function readConfig(conf) {
@@ -112,18 +113,6 @@ function getActiveTimers(timers) {
     }));
 }
 
-function printToArduino(activeTimers) {
-  if (activeTimers.length === 0) {
-    return "No active timers";
-  } else {
-    return activeTimers[0].tasks[0].title
-      .replace(/\**/, "")
-      .replace(/TODO/, "")
-      .replace(/IN-PROGRESS/, "")
-      .replace(/^\s*/, "")
-      .replace(/\/*/g, "");
-  }
-}
 function printActiveTimers(activeTimers) {
   if (activeTimers.length === 0) {
     console.log("No active timers");
@@ -147,23 +136,48 @@ function printActiveTimers(activeTimers) {
   }
 }
 
-let activeTimers = false;
+const statusFile = "./status.txt";
+async function readStatus() {
+  return new Promise((done, reject) => {
+    fs.readFile(statusFile, "utf8", (err, data) => {
+      if (err) throw err;
+      done(data);
+    });
+  })
+    .catch(err => {
+      logError(err);
+      return false;
+    })
+    .then(data =>
+      data
+        .replace(/\n/g, "_")
+        .replace(/^_*/, "")
+        .replace(/_*$/g, "")
+    );
+}
+
+let currentMessage = false;
 
 async function run() {
   const timers = await getTimers(orgDir);
-  const newActiveTimers = getActiveTimers(timers);
+  const newActiveTimers = await getActiveTimers(timers);
+  const status = await readStatus();
   if (
-    newActiveTimers &&
-    JSON.stringify(newActiveTimers) !== JSON.stringify(activeTimers)
+    newActiveTimers.length === 0 &&
+    JSON.stringify(status) !== JSON.stringify(currentMessage)
   ) {
-    //    process.stdout.write("\033c");
-    //    printActiveTimers(newActiveTimers);
-    activeTimers = newActiveTimers;
-    return printToArduino(newActiveTimers);
+    currentMessage = status;
+    return status;
+  } else if (
+    newActiveTimers.length &&
+    JSON.stringify(newActiveTimers) !== JSON.stringify(currentMessage)
+  ) {
+    currentMessage = newActiveTimers;
+    return formatTimers(newActiveTimers);
   }
 }
 
-arduinoSerial.setupArduino(run);
+setupArduino(run);
 
 async function runConstantly() {
   await run();
