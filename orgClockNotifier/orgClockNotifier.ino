@@ -13,11 +13,12 @@ const int pin_EN = 9;
 const int pin_d4 = 4; 
 const int pin_d5 = 5; 
 const int pin_d6 = 6; 
-const int pin_d7 = 7; 
-
+const int pin_d7 = 7;
 const int pin_BL = 10; 
 
 String incomingByte = ""; // for incoming serial data
+int stillFor = 500;
+int scrollSpeed = 50;
 
 LiquidCrystal lcd( pin_RS,  pin_EN,  pin_d4,  pin_d5,  pin_d6,  pin_d7);
 
@@ -37,23 +38,56 @@ String secondLine = "";
 int currentLine = 0;
 int displayPos = 0;
 
+int moveCount = 0;
+int stillCount = 0;
+int scrollPos = 0;
+
 void loop(){  
-    if (Serial.available() > 0) {
+    while (Serial.available() > 0) {
         char received = Serial.read();
         if (received == '\n') {
             // Message is ready in inDate
-            lcd.setCursor(0,0);
-            lcd.print("                   ");
-            lcd.setCursor(0,0);
-            lcd.print(firstLine);
-            lcd.setCursor(0,1);
-            lcd.print("                   ");   
-            lcd.setCursor(0,1);       
-            lcd.print(secondLine);   
-            firstLine = "";
-            secondLine = "";
-            currentLine = 0;
-            displayPos = 0;
+
+            if (firstLine == "") {
+              lcd.noDisplay();
+            } else {
+                lcd.clear();
+                lcd.display();
+                lcd.setCursor(0,0);
+                lcd.print(firstLine);
+                lcd.setCursor(0,1);
+                lcd.setCursor(0,1);       
+                lcd.print(secondLine);
+                int l = max(firstLine.length(), secondLine.length());   
+                firstLine = "";
+                secondLine = "";
+                currentLine = 0;
+                displayPos = 0;
+              
+                if (l > 16) {
+                  while (true) {
+                    if (Serial.available() > 0) break;
+                    // scroll one position right:
+                    if (scrollPos > l + 13) {
+                      stillCount = 0;
+                      scrollPos = 0;
+                      moveCount = 0;
+                    }
+                    else if (stillCount < stillFor) {
+                       stillCount++;
+                        moveCount = 0;
+                    } else if (moveCount > scrollSpeed){
+                       lcd.scrollDisplayLeft();
+                       moveCount = 0;
+                       scrollPos++;
+                    } else {
+                      moveCount++;  
+                    }
+                    // wait a bit:
+                    delay(10);
+                }
+               }
+            }
         } else if (received == '_'){
           currentLine = 1;
         } else if (currentLine == 0){
@@ -62,7 +96,4 @@ void loop(){
            secondLine.concat(received);  
         }     
    }
-  if (firstLine.length() > 16){
-    
-  } 
 }
